@@ -1,89 +1,77 @@
 bash <<'EOF'
+# US HATE MEDIATION SYSTEM
 trap 'tput cnorm; exit' INT; tput civis; clear
 
+# Install deps
 pip3 install opencv-python numpy --quiet --user &>/dev/null
 
-# Используем новую чистую папку
-TMP="/tmp/.ritual_final"
-mkdir -p "$TMP" && cd "$TMP"
+# Clean start in a fresh directory
+T="/tmp/.ritual_$(date +%s)"
+mkdir -p "$T" && cd "$T"
 
-V_URL="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
-A_URL="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
+# Direct RAW links
+V="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
+A="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
 
-curl -L -s -o v.mp4 "$V_URL"
-curl -L -s -o a.wav "$A_URL"
+# Downloading assets
+curl -L -s -o v.mp4 "$V"
+curl -L -s -o a.wav "$A"
 
+# Core execution
 python3 <<'PY_EOF' v.mp4 a.wav
 import sys, cv2, time, os, random, webbrowser
 
-MESSAGES = ["US HATE MEDIATION", "JOIN THE NEW LIGHT", "EYES OPEN", "SYSTEM FAILURE", "NO SIGNAL"]
-FINAL = ["US HATE MEDIATION", "JOIN THE NEW LIGHT"]
-TARGET = "https://t.me/exxxistentialism"
-CHARS = ["ｱ", "ｲ", "ｳ", "ｴ", "ｵ", "ｶ", "ｷ", "ｸ", "ｹ", "ｺ", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+M = ["US HATE MEDIATION", "JOIN THE NEW LIGHT", "EYES OPEN", "SYSTEM FAILURE", "NO SIGNAL"]
+F = ["US HATE MEDIATION", "JOIN THE NEW LIGHT"]
+U = "https://t.me/exxxistentialism"
+C = ["ｱ", "ｲ", "ｳ", "ｴ", "ｵ", "ｶ", "ｷ", "ｸ", "ｹ", "ｺ", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 W, G1, G2, R = "\033[1;37m", "\033[38;5;22m", "\033[38;5;28m", "\033[0m"
 
 def main():
-    if len(sys.argv) < 3: return
-    v_src, a_src = sys.argv[1], sys.argv[2]
+    vp, ap = sys.argv[1], sys.argv[2]
+    if os.path.exists(ap): os.system(f"afplay '{ap}' &")
     
-    if os.path.exists(a_src):
-        os.system(f"afplay '{a_src}' &")
-    
-    cap = cv2.VideoCapture(v_src)
-    start = time.time()
+    cap = cv2.VideoCapture(vp)
+    st = time.time()
     gl = []
     
-    try:
-        rows, cols = os.get_terminal_size().lines, os.get_terminal_size().columns
-    except:
-        rows, cols = 35, 90
+    try: rs, cs = os.get_terminal_size().lines, os.get_terminal_size().columns
+    except: rs, cs = 35, 90
         
-    dr = [[random.randint(0, rows), random.uniform(1.2, 3.0), random.randint(10, 25)] for _ in range(cols)]
+    dr = [[random.randint(0, rs), random.uniform(1.2, 3.0), random.randint(10, 25)] for _ in range(cs)]
 
-    while time.time() - start < 11:
+    while time.time() - st < 11:
         ret, frame = cap.read()
         if not ret: break
         
-        try:
-            rows, cols = os.get_terminal_size().lines, os.get_terminal_size().columns
+        try: rs, cs = os.get_terminal_size().lines, os.get_terminal_size().columns
         except: pass
 
         if len(gl) < 6 and random.random() < 0.2:
-            m = random.choice(MESSAGES)
-            gl.append({'t': m, 'y': random.randint(3, rows-4), 'x': random.randint(4, max(4, cols-len(m)-4)), 'l': 18})
+            txt = random.choice(M)
+            gl.append({'t': txt, 'y': random.randint(3, rs-4), 'x': random.randint(4, max(4, cs-len(txt)-4)), 'l': 18})
 
-        v_w = int(cols * 0.8)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.equalizeHist(gray)
-        
-        v_h = int(v_w * (gray.shape[0] / (gray.shape[1] * 2.1)))
-        if v_h > rows - 2:
-            v_h = rows - 2
-            v_w = int(v_h / (gray.shape[0] / (gray.shape[1] * 2.1)))
-            
-        res = cv2.resize(gray, (v_w, v_h))
-        oy, ox = (rows // 2) - (v_h // 2), (cols // 2) - (v_w // 2)
+        vw = int(cs * 0.8)
+        gray = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+        vh = int(vw * (gray.shape[0] / (gray.shape[1] * 2.1)))
+        if vh > rs - 2: vh = rs - 2; vw = int(vh / (gray.shape[0] / (gray.shape[1] * 2.1)))
+        res = cv2.resize(gray, (vw, vh))
+        oy, ox = (rs // 2) - (vh // 2), (cs // 2) - (vw // 2)
 
         gm = {(g['y'], g['x'] + i): g['t'][i] for g in gl for i in range(len(g['t']))}
 
         out = []
-        for r in range(rows - 1):
+        for r in range(rs - 1):
             ln = ""
-            for c in range(cols):
-                if (r, c) in gm:
-                    ln += f"{W}{gm[(r, c)]}{R}"
-                    continue
-                
-                d_p, d_s, d_l = dr[c]
-                px = res[r-oy, c-ox] if oy <= r < oy+v_h and ox <= c < ox+v_w else 0
-                char = random.choice(CHARS)
-                
-                if px > 70:
-                    ln += f"{W if 0 <= d_p-r < d_l else G1}{char}{R}"
-                else:
-                    ln += f"{G2}{char}{R}" if 0 <= d_p-r < d_l else " "
+            for c in range(cs):
+                if (r, c) in gm: ln += f"{W}{gm[(r, c)]}{R}"; continue
+                dp, ds, dl = dr[c]
+                px = res[r-oy, c-ox] if oy<=r<oy+vh and ox<=c<ox+vw else 0
+                ch = random.choice(C)
+                if px > 70: ln += f"{W if 0<=dp-r<dl else G1}{ch}{R}"
+                else: ln += f"{G2}{ch}{R}" if 0<=dp-r<dl else " "
             out.append(ln)
-            dr[c][0] = (dr[c][0] + dr[c][1]) % rows
+            dr[c][0] = (dr[c][0] + dr[c][1]) % rs
 
         for g in gl[:]:
             g['l'] -= 1
@@ -95,18 +83,13 @@ def main():
 
     os.system("killall afplay 2>/dev/null")
     for i in range(15):
-        sys.stdout.write("\033[2J\033[H\n"*(rows//2-2))
-        c = W if i%2==0 else "\033[38;5;46m"
-        for p in FINAL:
-            print(f"\033[1m{c}{p}{R}".center(cols+10))
-        sys.stdout.flush()
-        time.sleep(0.1)
-    
-    webbrowser.open(TARGET)
+        sys.stdout.write("\033[2J\033[H\n"*(rs//2-2))
+        col = W if i%2==0 else "\033[38;5;46m"
+        for p in F: print(f"\033[1m{col}{p}{R}".center(cs+10))
+        sys.stdout.flush(); time.sleep(0.1)
+    webbrowser.open(U)
 
-if __name__ == "__main__":
-    main()
+main()
 PY_EOF
-
-rm -rf "$TMP"
+cd /tmp && rm -rf "$T"
 EOF
