@@ -4,39 +4,98 @@ mkdir -p /tmp/.final_ritual && cd /tmp/.final_ritual
 pip3 install opencv-python numpy --quiet --user &>/dev/null
 curl -L -s -o v.mp4 "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
 curl -L -s -o a.wav "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
+
 cat << 'EOF' > s.py
 import sys, cv2, time, os, random, webbrowser
+
+PHRASES = ["US HATE MEDIATION", "JOIN THE NEW LIGHT", "EYES OPEN", "NO SIGNAL", "SYSTEM FAILURE"]
+FINAL_1, FINAL_2, FINAL_3 = "US HATE", "MEDIATION", "JOIN THE NEW LIGHT"
+LINK = "https://t.me/exxxistentialism"
+CHARS = ["ｱ", "ｲ", "ｳ", "ｴ", "ｵ", "ｶ", "ｷ", "ｸ", "ｹ", "ｺ", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+GREEN_DARK, GREEN_MID, GREEN_BRIGHT, WHITE, RESET = "\033[38;5;22m", "\033[38;5;28m", "\033[38;5;46m", "\033[1;37m", "\033[0m"
+
 def main():
-    v, a = "v.mp4", "a.wav"
-    if os.path.exists(a): os.system(f"afplay '{a}' &")
-    cap = cv2.VideoCapture(v)
-    st = time.time()
-    try: rs, cs = os.get_terminal_size().lines, os.get_terminal_size().columns
-    except: rs, cs = 35, 90
-    dr = [[random.randint(0, rs), random.uniform(1.2, 3.2), random.randint(10, 25)] for _ in range(cs)]
-    while time.time() - st < 11:
-        ret, frame = cap.read()
-        if not ret: break
-        g = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
-        vw = int(cs * 0.8)
-        vh = int(vw * (g.shape[0] / (g.shape[1] * 2.1)))
-        if vh > rs - 2: vh = rs - 2; vw = int(vh / (g.shape[0] / (g.shape[1] * 2.1)))
-        res = cv2.resize(g, (vw, vh))
-        oy, ox = (rs // 2) - (vh // 2), (cs // 2) - (vw // 2)
-        out = []
-        for r in range(rs - 1):
-            ln = ""
-            for c in range(cs):
-                dp, ds, dl = dr[c]
-                px = res[r-oy, c-ox] if oy<=r<oy+vh and ox<=c<ox+vw else 0
-                if px > 75: ln += f"\033[1;37m{random.choice('10')}\033[0m" if 0<=dp-r<dl else " "
-                else: ln += f"\033[38;5;28m{random.choice('ｱｲｳ')}\033[0m" if 0<=dp-r<dl else " "
-            out.append(ln)
-            dr[c][0] = (dr[c][0] + dr[c][1]) % rs
-        sys.stdout.write("\033[H" + "\n".join(out)); sys.stdout.flush()
-        time.sleep(0.01)
-    os.system("killall afplay 2>/dev/null")
-    webbrowser.open("https://t.me/exxxistentialism")
+    video_path, audio_path = "v.mp4", "a.wav"
+    os.system(f"afplay '{audio_path}' &")
+    cap = cv2.VideoCapture(video_path)
+    start_time = time.time()
+    glitches = []
+    try:
+        rows, cols = os.get_terminal_size().lines, os.get_terminal_size().columns
+    except:
+        rows, cols = 35, 90
+    drops = [[random.randint(0, rows), random.uniform(0.6, 2.0), random.randint(10, 25)] for _ in range(cols)]
+
+    try:
+        while time.time() - start_time < 10:
+            ret, frame = cap.read()
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+            try:
+                rows, cols = os.get_terminal_size().lines, os.get_terminal_size().columns
+            except: pass
+            
+            if len(glitches) < 6 and random.random() < 0.2:
+                p = random.choice(PHRASES)
+                glitches.append({'text': p, 'y': random.randint(2, rows-3), 'x': random.randint(2, max(2, cols-len(p)-2)), 'life': random.randint(15, 40)})
+
+            v_width = int(cols * 0.8)
+            gray = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+            ratio = gray.shape[0] / (gray.shape[1] * 2.1)
+            v_height = int(v_width * ratio)
+            if v_height > rows - 2:
+                v_height = rows - 2
+                v_width = int(v_height / ratio)
+            resized = cv2.resize(gray, (v_width, v_height))
+            offset_y, offset_x = (rows // 2) - (v_height // 2), (cols // 2) - (v_width // 2)
+
+            glitch_map = {}
+            for g in glitches:
+                gx = g['x'] + (random.randint(-1, 1) if random.random() > 0.8 else 0)
+                for i, char in enumerate(g['text']):
+                    glitch_map[(g['y'], gx + i)] = char
+
+            output = []
+            for r in range(rows - 1):
+                line = ""
+                for c in range(cols):
+                    if (r, c) in glitch_map:
+                        line += f"{WHITE}{glitch_map[(r, c)]}{RESET}" if random.random() > 0.1 else f"{GREEN_BRIGHT}{random.choice(CHARS)}{RESET}"
+                        continue
+                    pos, speed, length = drops[c]
+                    dist = pos - r
+                    px = resized[r - offset_y, c - offset_x] if offset_y <= r < offset_y + v_height and offset_x <= c < offset_x + v_width else 0
+                    char = random.choice(CHARS)
+                    if px > 65:
+                        line += f"{WHITE if 0 <= dist < length else GREEN_DARK}{char}{RESET}"
+                    else:
+                        line += f"{GREEN_MID}{char}{RESET}" if 0 <= dist < length else " "
+                output.append(line)
+                drops[c][0] = (drops[c][0] + drops[c][1]) % rows
+
+            for g in glitches[:]:
+                g['life'] -= 1
+                if g['life'] <= 0: glitches.remove(g)
+
+            sys.stdout.write("\033[H" + "\n".join(output))
+            sys.stdout.flush()
+            time.sleep(0.01)
+
+        os.system("killall afplay 2>/dev/null")
+        for i in range(20):
+            sys.stdout.write("\033[2J\033[H")
+            print("\n" * (rows // 2 - 4))
+            color = WHITE if i % 2 == 0 else GREEN_BRIGHT
+            print(f"\033[1m{color}{FINAL_1}\033[0m".center(cols + 10))
+            print(f"\033[1m{color}{FINAL_2}\033[0m".center(cols + 10))
+            print("\n" + f"\033[1m{color}{FINAL_3}\033[0m".center(cols + 10))
+            sys.stdout.flush()
+            time.sleep(0.1)
+        webbrowser.open(LINK)
+    except: pass
+    finally: cap.release()
+
 main()
 EOF
 python3 s.py
