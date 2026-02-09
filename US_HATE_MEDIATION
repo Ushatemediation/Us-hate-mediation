@@ -1,14 +1,11 @@
 #!/bin/bash
-# Очистка и подготовка
 rm -rf /tmp/.ritual_final 2>/dev/null
 mkdir -p /tmp/.ritual_final && cd /tmp/.ritual_final
 pip3 install opencv-python numpy --quiet --user &>/dev/null
 
-# Скачивание исходников
 curl -L -s -o v.mp4 "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
 curl -L -s -o a.wav "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
 
-# Тот самый Python код анимации, один в один
 cat << 'EOF' > s.py
 import sys, cv2, time, os, random, webbrowser
 
@@ -106,7 +103,6 @@ def main():
             sys.stdout.flush()
             time.sleep(0.1)
         webbrowser.open(LINK)
-
     except KeyboardInterrupt:
         pass
     finally:
@@ -117,7 +113,6 @@ def main():
 if __name__ == '__main__':
     main()
 EOF
-# Запуск
+
 python3 s.py
-# Чистка
 cd /tmp && rm -rf /tmp/.ritual_final
