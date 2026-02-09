@@ -1,118 +1,110 @@
-#!/bin/bash
-rm -rf /tmp/.ritual_final 2>/dev/null
-mkdir -p /tmp/.ritual_final && cd /tmp/.ritual_final
-pip3 install opencv-python numpy --quiet --user &>/dev/null
+import os, sys, subprocess, time, random, webbrowser, urllib.request
 
-curl -L -s -o v.mp4 "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
-curl -L -s -o a.wav "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
+def prepare():
+    try:
+        import cv2, numpy
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python", "numpy", "--quiet", "--user"])
 
-cat << 'EOF' > s.py
-import sys, cv2, time, os, random, webbrowser
+prepare()
+import cv2
+import numpy as np
 
 PHRASES = ["US HATE MEDIATION", "JOIN THE NEW LIGHT", "EYES OPEN", "NO SIGNAL", "SYSTEM FAILURE"]
-FINAL_1 = "US HATE"
-FINAL_2 = "MEDIATION"
-FINAL_3 = "JOIN THE NEW LIGHT"
+FINAL = ["US HATE", "MEDIATION", "JOIN THE NEW LIGHT"]
 LINK = "https://t.me/exxxistentialism"
 CHARS = ["ｱ", "ｲ", "ｳ", "ｴ", "ｵ", "ｶ", "ｷ", "ｸ", "ｹ", "ｺ", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-GREEN_DARK = "\033[38;5;22m"
-GREEN_MID = "\033[38;5;28m"
-GREEN_BRIGHT = "\033[38;5;46m"
-WHITE = "\033[1;37m"
-RESET = "\033[0m"
+GREEN_D, GREEN_M, GREEN_B, WHITE, RESET = "\033[38;5;22m", "\033[38;5;28m", "\033[38;5;46m", "\033[1;37m", "\033[0m"
 
 def main():
-    video_path, audio_path = "v.mp4", "a.wav"
-    os.system(f"afplay '{audio_path}' &")
-    cap = cv2.VideoCapture(video_path)
+    v_url = "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
+    a_url = "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
+    
+    tmp = os.getenv('TEMP') or os.getenv('TMPDIR') or '/tmp'
+    v_p = os.path.join(tmp, "v.mp4")
+    a_p = os.path.join(tmp, "a.wav")
+    
+    if not os.path.exists(v_p): urllib.request.urlretrieve(v_url, v_p)
+    if not os.path.exists(a_p): urllib.request.urlretrieve(a_url, a_p)
+
+    if sys.platform == "darwin":
+        os.system(f"afplay '{a_p}' &")
+    elif sys.platform == "win32":
+        try:
+            import winsound, threading
+            threading.Thread(target=lambda: winsound.PlaySound(a_p, winsound.SND_FILENAME), daemon=True).start()
+        except: pass
+
+    cap = cv2.VideoCapture(v_p)
     start_time = time.time()
     glitches = []
-    size = os.get_terminal_size()
-    rows, cols = size.lines, size.columns
+    
+    try: rows, cols = os.get_terminal_size().lines, os.get_terminal_size().columns
+    except: rows, cols = 30, 80
+    
     drops = [[random.randint(0, rows), random.uniform(0.6, 2.0), random.randint(10, 25)] for _ in range(cols)]
 
     try:
         while time.time() - start_time < 10:
             ret, frame = cap.read()
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                continue
-
-            size = os.get_terminal_size()
-            rows, cols = size.lines, size.columns
+            if not ret: break
             
+            try: rows, cols = os.get_terminal_size().lines, os.get_terminal_size().columns
+            except: pass
+
             if len(glitches) < 6 and random.random() < 0.2:
                 p = random.choice(PHRASES)
-                glitches.append({'text': p, 'y': random.randint(2, rows-3), 'x': random.randint(2, max(2, cols-len(p)-2)), 'life': random.randint(15, 40)})
+                glitches.append({'t': p, 'y': random.randint(2, rows-3), 'x': random.randint(2, max(2, cols-len(p)-2)), 'l': 20})
 
-            v_width = int(cols * 0.8)
-            grayscaled = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            grayscaled = cv2.equalizeHist(grayscaled)
-            ratio = grayscaled.shape[0] / (grayscaled.shape[1] * 2.1)
-            v_height = int(v_width * ratio)
-            if v_height > rows - 2:
-                v_height = rows - 2
-                v_width = int(v_height / ratio)
-            resized = cv2.resize(grayscaled, (v_width, v_height))
-            offset_y, offset_x = (rows // 2) - (v_height // 2), (cols // 2) - (v_width // 2)
+            v_w = int(cols * 0.8)
+            gray = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+            ratio = gray.shape[0] / (gray.shape[1] * 2.1)
+            v_h = int(v_w * ratio)
+            if v_h > rows - 2: v_h = rows - 2; v_w = int(v_h / ratio)
+            res = cv2.resize(gray, (v_w, v_h))
+            oy, ox = (rows // 2) - (v_h // 2), (cols // 2) - (v_w // 2)
 
-            glitch_map = {}
+            g_map = {}
             for g in glitches:
-                gx = g['x'] + (random.randint(-1, 1) if random.random() > 0.8 else 0)
-                for i, char in enumerate(g['text']):
-                    glitch_map[(g['y'], gx + i)] = char
+                for i, char in enumerate(g['t']): g_map[(g['y'], g['x'] + i)] = char
 
             output = []
             for r in range(rows - 1):
                 line = ""
                 for c in range(cols):
-                    if (r, c) in glitch_map:
-                        line += f"\033[1;37m{glitch_map[(r, c)]}{RESET}" if random.random() > 0.1 else f"{GREEN_BRIGHT}{random.choice(CHARS)}{RESET}"
+                    if (r, c) in g_map:
+                        line += f"{WHITE}{g_map[(r, c)]}{RESET}"
                         continue
-                    pos, speed, length = drops[c]
+                    pos, _, length = drops[c]
                     dist = pos - r
-                    pixel_bright = resized[r - offset_y, c - offset_x] if offset_y <= r < offset_y + v_height and offset_x <= c < offset_x + v_width else 0
+                    px = res[r-oy, c-ox] if oy <= r < oy+v_h and ox <= c < ox+v_w else 0
                     char = random.choice(CHARS)
-                    if pixel_bright > 65:
-                        line += f"{WHITE if 0 <= dist < length else GREEN_DARK}{char}{RESET}"
+                    if px > 65:
+                        line += f"{WHITE if 0 <= dist < length else GREEN_D}{char}{RESET}"
                     else:
-                        line += f"{GREEN_MID}{char}{RESET}" if 0 <= dist < length else " "
+                        line += f"{GREEN_M}{char}{RESET}" if 0 <= dist < length else " "
                 output.append(line)
                 drops[c][0] = (drops[c][0] + drops[c][1]) % rows
 
-            for g in glitches[:]:
-                g['life'] -= 1
-                if g['life'] <= 0: glitches.remove(g)
-
             sys.stdout.write("\033[H" + "\n".join(output))
             sys.stdout.flush()
+            
+            for g in glitches[:]:
+                g['l'] -= 1
+                if g['l'] <= 0: glitches.remove(g)
             time.sleep(0.01)
 
-        os.system("killall afplay 2>/dev/null")
-        for i in range(20):
-            size = os.get_terminal_size()
-            rows, cols = size.lines, size.columns
-            sys.stdout.write("\033[2J\033[H")
-            y_start = rows // 2 - 4
-            print("\n" * y_start)
-            color = WHITE if i % 2 == 0 else GREEN_BRIGHT
-            print(f"\033[1m{color}{FINAL_1}\033[0m".center(cols + 10))
-            print(f"\033[1m{color}{FINAL_2}\033[0m".center(cols + 10))
-            print("\n")
-            print(f"\033[1m{color}{FINAL_3}\033[0m".center(cols + 10))
+        for i in range(15):
+            sys.stdout.write("\033[2J\033[H" + "\n" * (rows // 2 - 2))
+            color = WHITE if i % 2 == 0 else GREEN_B
+            for l in FINAL: print(f"\033[1m{color}{l}{RESET}".center(cols + 10))
             sys.stdout.flush()
             time.sleep(0.1)
+        
         webbrowser.open(LINK)
-    except KeyboardInterrupt:
-        pass
     finally:
         cap.release()
-        os.system("killall afplay 2>/dev/null")
-        print("\033[2J\033[H")
+        if sys.platform == "darwin": os.system("killall afplay 2>/dev/null")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-EOF
-
-python3 s.py
-cd /tmp && rm -rf /tmp/.ritual_final
