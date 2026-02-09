@@ -1,23 +1,20 @@
 bash <<'EOF'
-# US HATE MEDIATION SYSTEM
-trap 'tput cnorm; exit' INT; tput civis; clear
+# Принудительная очистка старых ошибок
+rm -rf /tmp/.sys_log_88 /tmp/.ritual* 2>/dev/null
 
-# Install deps
+trap 'tput cnorm; exit' INT; tput civis; clear
 pip3 install opencv-python numpy --quiet --user &>/dev/null
 
-# Clean start in a fresh directory
-T="/tmp/.ritual_$(date +%s)"
+T="/tmp/.ritual_final"
 mkdir -p "$T" && cd "$T"
 
-# Direct RAW links
+# Прямые ссылки на твои исходники
 V="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
 A="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
 
-# Downloading assets
 curl -L -s -o v.mp4 "$V"
 curl -L -s -o a.wav "$A"
 
-# Core execution
 python3 <<'PY_EOF' v.mp4 a.wav
 import sys, cv2, time, os, random, webbrowser
 
@@ -73,13 +70,12 @@ def main():
             out.append(ln)
             dr[c][0] = (dr[c][0] + dr[c][1]) % rs
 
-        for g in gl[:]:
-            g['l'] -= 1
-            if g['l'] <= 0: gl.remove(g)
-
         sys.stdout.write("\033[H" + "\n".join(out))
         sys.stdout.flush()
         time.sleep(0.01)
+        for g in gl[:]:
+            g['l'] -= 1
+            if g['l'] <= 0: gl.remove(g)
 
     os.system("killall afplay 2>/dev/null")
     for i in range(15):
