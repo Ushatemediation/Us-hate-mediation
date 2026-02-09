@@ -1,91 +1,43 @@
-bash <<'EOF'
-# Принудительная очистка старых ошибок
-rm -rf /tmp/.sys_log_88 /tmp/.ritual* 2>/dev/null
-
-trap 'tput cnorm; exit' INT; tput civis; clear
+#!/bin/bash
+rm -rf /tmp/.final_ritual 2>/dev/null
+mkdir -p /tmp/.final_ritual && cd /tmp/.final_ritual
 pip3 install opencv-python numpy --quiet --user &>/dev/null
-
-T="/tmp/.ritual_final"
-mkdir -p "$T" && cd "$T"
-
-# Прямые ссылки на твои исходники
-V="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
-A="https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
-
-curl -L -s -o v.mp4 "$V"
-curl -L -s -o a.wav "$A"
-
-python3 <<'PY_EOF' v.mp4 a.wav
+curl -L -s -o v.mp4 "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.MP4"
+curl -L -s -o a.wav "https://raw.githubusercontent.com/Ushatemediation/Us-hate-mediation/main/IMG_1827.wav"
+cat << 'EOF' > s.py
 import sys, cv2, time, os, random, webbrowser
-
-M = ["US HATE MEDIATION", "JOIN THE NEW LIGHT", "EYES OPEN", "SYSTEM FAILURE", "NO SIGNAL"]
-F = ["US HATE MEDIATION", "JOIN THE NEW LIGHT"]
-U = "https://t.me/exxxistentialism"
-C = ["ｱ", "ｲ", "ｳ", "ｴ", "ｵ", "ｶ", "ｷ", "ｸ", "ｹ", "ｺ", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-W, G1, G2, R = "\033[1;37m", "\033[38;5;22m", "\033[38;5;28m", "\033[0m"
-
 def main():
-    vp, ap = sys.argv[1], sys.argv[2]
-    if os.path.exists(ap): os.system(f"afplay '{ap}' &")
-    
-    cap = cv2.VideoCapture(vp)
+    v, a = "v.mp4", "a.wav"
+    if os.path.exists(a): os.system(f"afplay '{a}' &")
+    cap = cv2.VideoCapture(v)
     st = time.time()
-    gl = []
-    
     try: rs, cs = os.get_terminal_size().lines, os.get_terminal_size().columns
     except: rs, cs = 35, 90
-        
-    dr = [[random.randint(0, rs), random.uniform(1.2, 3.0), random.randint(10, 25)] for _ in range(cs)]
-
+    dr = [[random.randint(0, rs), random.uniform(1.2, 3.2), random.randint(10, 25)] for _ in range(cs)]
     while time.time() - st < 11:
         ret, frame = cap.read()
         if not ret: break
-        
-        try: rs, cs = os.get_terminal_size().lines, os.get_terminal_size().columns
-        except: pass
-
-        if len(gl) < 6 and random.random() < 0.2:
-            txt = random.choice(M)
-            gl.append({'t': txt, 'y': random.randint(3, rs-4), 'x': random.randint(4, max(4, cs-len(txt)-4)), 'l': 18})
-
+        g = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
         vw = int(cs * 0.8)
-        gray = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
-        vh = int(vw * (gray.shape[0] / (gray.shape[1] * 2.1)))
-        if vh > rs - 2: vh = rs - 2; vw = int(vh / (gray.shape[0] / (gray.shape[1] * 2.1)))
-        res = cv2.resize(gray, (vw, vh))
+        vh = int(vw * (g.shape[0] / (g.shape[1] * 2.1)))
+        if vh > rs - 2: vh = rs - 2; vw = int(vh / (g.shape[0] / (g.shape[1] * 2.1)))
+        res = cv2.resize(g, (vw, vh))
         oy, ox = (rs // 2) - (vh // 2), (cs // 2) - (vw // 2)
-
-        gm = {(g['y'], g['x'] + i): g['t'][i] for g in gl for i in range(len(g['t']))}
-
         out = []
         for r in range(rs - 1):
             ln = ""
             for c in range(cs):
-                if (r, c) in gm: ln += f"{W}{gm[(r, c)]}{R}"; continue
                 dp, ds, dl = dr[c]
                 px = res[r-oy, c-ox] if oy<=r<oy+vh and ox<=c<ox+vw else 0
-                ch = random.choice(C)
-                if px > 70: ln += f"{W if 0<=dp-r<dl else G1}{ch}{R}"
-                else: ln += f"{G2}{ch}{R}" if 0<=dp-r<dl else " "
+                if px > 75: ln += f"\033[1;37m{random.choice('10')}\033[0m" if 0<=dp-r<dl else " "
+                else: ln += f"\033[38;5;28m{random.choice('ｱｲｳ')}\033[0m" if 0<=dp-r<dl else " "
             out.append(ln)
             dr[c][0] = (dr[c][0] + dr[c][1]) % rs
-
-        sys.stdout.write("\033[H" + "\n".join(out))
-        sys.stdout.flush()
+        sys.stdout.write("\033[H" + "\n".join(out)); sys.stdout.flush()
         time.sleep(0.01)
-        for g in gl[:]:
-            g['l'] -= 1
-            if g['l'] <= 0: gl.remove(g)
-
     os.system("killall afplay 2>/dev/null")
-    for i in range(15):
-        sys.stdout.write("\033[2J\033[H\n"*(rs//2-2))
-        col = W if i%2==0 else "\033[38;5;46m"
-        for p in F: print(f"\033[1m{col}{p}{R}".center(cs+10))
-        sys.stdout.flush(); time.sleep(0.1)
-    webbrowser.open(U)
-
+    webbrowser.open("https://t.me/exxxistentialism")
 main()
-PY_EOF
-cd /tmp && rm -rf "$T"
 EOF
+python3 s.py
+cd /tmp && rm -rf /tmp/.final_ritual
